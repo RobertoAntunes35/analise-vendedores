@@ -67,7 +67,7 @@ class Relatorio:
         self._file_colaboradores = file_colaboradores
 
     @show_error
-    def filter_seller(self) -> pd.DataFrame:
+    def filter_seller(self) -> pd.DataFrame['codigo': int, 'nome': str]:
         seller_data = copy.copy(self._file_colaboradores)
 
         file_vendedor = seller_data.filter(['codigo', 'nome']).loc[seller_data['funcao'] == 'VENDEDOR EXTERNO']
@@ -130,10 +130,10 @@ class Relatorio:
 
         
 
-    def file_orders(self, ):
+    def file_orders(self):
         data_orders = copy.copy(self._file_pedidos)
         client_for_day = self.client_for_seller_for_day()
-        
+
 
 
 
