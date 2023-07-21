@@ -12,7 +12,6 @@ folder_files = "static-files/"
 
 usually_path = os.path.join(father_path, folder_files)
 
-
 # Configurações
 semana_dias = {
         0: 'segunda',
@@ -30,7 +29,9 @@ columns = {
         'CODCLI':'codigo',
         'Combinação22':'codigo_vendedor',
         'VALPED':'valor_pedido',
-        'Data_Importacao':'data_importacao'
+        'Data_Importacao':'data_importacao',
+        'Combinação22':'codigo_vendedor',
+        'Texto36': 'natureza_opereracao'
         },
     'cliente': {
         'D01_Cod_Cliente':'codigo',

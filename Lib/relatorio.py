@@ -9,7 +9,8 @@ from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 from files import file_colaboradores, file_cliente, file_pedidos
-from config import columns
+from config import columns, father_path
+
 
 def show_error(func):
         def wrapper(*args, **kwargs):
@@ -61,13 +62,31 @@ class Dates:
     
   
 class Relatorio:
-    def __init__(self, file_cliente: pd.DataFrame, file_pedidos: pd.DataFrame, file_colaboradores: pd.DataFrame) -> None:
+    def __init__(self, file_cliente: pd.DataFrame, file_pedidos: pd.DataFrame, file_colaboradores: pd.DataFrame, start_date, end_date, periods) -> None:
         self._file_client = file_cliente
         self._file_pedidos = file_pedidos
         self._file_colaboradores = file_colaboradores
 
+        self._start_date = start_date
+        self._end_date = end_date
+        self._periods = periods
+
+
+
     @show_error
-    def filter_seller(self) -> pd.DataFrame['codigo': int, 'nome': str]:
+    def convert_seller(self, value):
+        sellers = self.filter_seller()
+        if isinstance(value, int):
+            for i in (sellers.loc[sellers['codigo'] == value]['nome']):
+                return str(i)
+        if isinstance(value, str):
+            for i in sellers.loc[sellers['nome'] == value]['codigo']:
+                return int(i)
+
+
+
+    @show_error
+    def filter_seller(self) -> pd.DataFrame:
         seller_data = copy.copy(self._file_colaboradores)
 
         file_vendedor = seller_data.filter(['codigo', 'nome']).loc[seller_data['funcao'] == 'VENDEDOR EXTERNO']
@@ -108,9 +127,9 @@ class Relatorio:
                 seller_client_day[vendedor][value] = clients[vendedor].loc[clients[vendedor]['dia_semana'] == key]
         return seller_client_day, dias_semana
 
-    def increase_data(self, start_date, end_date, periods):
+    def increase_data(self):
         datas = Dates()
-        datas_analise = datas.get_weekday_dates(start_date, end_date, periods)
+        datas_analise = datas.get_weekday_dates(self._start_date, self._end_date, self._periods)
         sellers = self.filter_seller()
         clients_for_day, dias = self.client_for_seller_for_day()
 
@@ -123,18 +142,53 @@ class Relatorio:
                     clients_for_day[vendedor][value_data][data] = np.nan
                 for row in dataframe_to_rows(clients_for_day[vendedor][value_data], index=False, header=True):
                     planilha.append(row)
+                clients_for_day[vendedor][value_data][data] = pd.to_datetime(clients_for_day[vendedor][value_data][data])
 
             save_directory = "../files-sellers/"
             os.makedirs(save_directory, exist_ok=True)
-            wb.save(os.path.join(save_directory, f"{vendedor}.xlsx"))               
+            name_file_vendedor = vendedor.replace(" ", "_")
+            wb.remove(wb.active)
+            wb.save(os.path.join(save_directory, f"{name_file_vendedor}.xlsx"))               
 
-        
+    @show_error    
+    def return_sellers_to_folder(self, path):
+        pass  
 
+
+    @show_error
     def file_orders(self):
         data_orders = copy.copy(self._file_pedidos)
-        client_for_day = self.client_for_seller_for_day()
+        client_for_day, days = self.client_for_seller_for_day()
+        datas = Dates()
+        datas_semana = datas.get_weekday_dates(self._start_date, self._end_date, self._periods)
 
 
+        path_sellers_full = os.path.join(father_path, "files-sellers")
+
+        # Loop para pegar os vendedores
+        for seller in os.listdir(path_sellers_full):
+            name_seller = seller.split('.')[0].replace("_", " ")
+            
+            value_analise_vendedor = self.convert_seller(name_seller)
+            
+            frame_orders_seller = data_orders.loc[data_orders['codigo_vendedor'] == value_analise_vendedor]
+
+
+            # Loop para pegar os dias da semana
+            for dia, valor in days.items():
+                
+                frame_data_sellers = pd.read_excel(f'{path_sellers_full}/{seller}', sheet_name=valor)
+                
+                nomes_fantasia_em_cadastro = [str(value) for value in frame_data_sellers['nome_fantasia']]
+                nomes_fantasia_positivados = [str(value) for value in frame_orders_seller['nome_fantasia']]
+                
+                # Loop para verificar a positivação do cliente 
+                for nome_fantasia_analise in nomes_fantasia_em_cadastro:    
+                    if nome_fantasia_analise in nomes_fantasia_positivados:
+                        
+                        # Loop para verificar todas as segundas, tercas, quartas, quintas e sexta do mes
+                        for key_week_day, value_week_day in datas_semana.items():
+                            frame_do_cliente_positivado = frame_orders_seller.loc[frame_orders_seller['nome_fantasia'] == nome_fantasia_analise, ['nome_fantasia', 'valor_pedido', 'data_importacao', 'natureza_opereracao']]
 
 
 
@@ -148,15 +202,12 @@ if __name__ == "__main__":
     arquivo_colaboradores = Excel(file_colaboradores)
     new_file_colaborador = arquivo_colaboradores.rename_columns(new_columns=columns['colaboradores'])
 
-    datas = Dates()
-    datas_analise = datas.get_weekday_dates(start_date="01/07/2023", end_date="31/07/2023", periods=31)
 
-    relatorio_analise = Relatorio(file_cliente=new_file_cliente, file_pedidos=new_file_pedido, file_colaboradores=new_file_colaborador)
+    relatorio_analise = Relatorio(file_cliente=new_file_cliente, file_pedidos=new_file_pedido, file_colaboradores=new_file_colaborador, start_date="01/07/2023", end_date="31/07/2023", periods=31)
     relatorio_analise.filter_seller()
     relatorio_analise.clientForSellers()
     relatorio_analise.client_for_seller_for_day()
+    relatorio_analise.increase_data()
     relatorio_analise.file_orders()
-    relatorio_analise.increase_data(start_date="01/07/2023", end_date="31/07/2023", periods=31)
 
-    
 
