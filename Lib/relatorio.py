@@ -154,6 +154,7 @@ class Relatorio:
     def return_sellers_to_folder(self, path):
         pass  
 
+    @show_error
 
     @show_error
     def file_orders(self):
@@ -173,11 +174,10 @@ class Relatorio:
             
             frame_orders_seller = data_orders.loc[data_orders['codigo_vendedor'] == value_analise_vendedor]
 
-
             # Loop para pegar os dias da semana
-            for dia, valor in days.items():
+            for valor, dia in days.items():
                 
-                frame_data_sellers = pd.read_excel(f'{path_sellers_full}/{seller}', sheet_name=valor)
+                frame_data_sellers = pd.read_excel(f'{path_sellers_full}/{seller}', sheet_name=dia)
                 
                 nomes_fantasia_em_cadastro = [str(value) for value in frame_data_sellers['nome_fantasia']]
                 nomes_fantasia_positivados = [str(value) for value in frame_orders_seller['nome_fantasia']]
@@ -188,9 +188,9 @@ class Relatorio:
                         
                         # Loop para verificar todas as segundas, tercas, quartas, quintas e sexta do mes
                         for key_week_day, value_week_day in datas_semana.items():
-                            frame_do_cliente_positivado = frame_orders_seller.loc[frame_orders_seller['nome_fantasia'] == nome_fantasia_analise, ['nome_fantasia', 'valor_pedido', 'data_importacao', 'natureza_opereracao']]
-
-
+                            print(type(value_week_day))
+                            frame_do_cliente_positivado = frame_orders_seller.loc[(frame_orders_seller['nome_fantasia'] == nome_fantasia_analise) & (frame_orders_seller['natureza_opereracao'] != 3), ['nome_fantasia', 'valor_pedido', 'data_importacao', 'natureza_opereracao']]
+                            
 
 if __name__ == "__main__":
     arquivo_clientes = Excel(file_cliente)
